@@ -884,47 +884,43 @@
             });
 
             async function callGeminiAPI(age, gender, symptoms, medicalHistory) {
-                const apiKey = "AIzaSyAJXz6E8Yi2KFXeMlZp_DPkf0a9oNo2qhw"; // 
-                const model = "gemini-2.5-flash-preview-05-20"; // Updated to use the correct model
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    // Instead of calling Google, we call our private serverless function
+    const url = `/api/get-recommendations`; 
 
-                const prompt = `As a medical assistant, provide recommendations for a ${age}-year-old ${gender} with these symptoms: ${symptoms}. Medical history: ${medicalHistory || 'None'}.
-                Return only valid JSON with keys: disease, description, precautions, medications, workout, diet.`;
+    const prompt = `As a medical assistant, provide recommendations for a ${age}-year-old ${gender} with these symptoms: ${symptoms}. Medical history: ${medicalHistory || 'None'}.
+    Return only valid JSON with keys: disease, description, precautions, medications, workout, diet.`;
 
-                const body = {
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { responseMimeType: "application/json" }
-                };
+    const body = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+    };
 
-                const res = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(body)
-                });
+    const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    });
 
-                const data = await res.json();
-                console.log("Full API response:", data);
+    const data = await res.json();
 
-                if (!res.ok) {
-                    throw new Error(data.error?.message || "API Error");
-                }
+    if (!res.ok) {
+        throw new Error(data.error?.message || "API Error");
+    }
 
-                let aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!aiText) throw new Error("No text returned by AI.");
+    let aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!aiText) throw new Error("No text returned by AI.");
 
-                try {
-                    return JSON.parse(aiText.trim());
-                } catch {
-                    return {
-                        disease: "Analysis incomplete.",
-                        description: aiText || "Could not parse detailed recommendations. Please try again with more specific symptoms.",
-                        precautions: "—",
-                        medications: "—",
-                        workout: "—",
-                        diet: "—"
-                    };
-                }
-            }
+    try {
+        return JSON.parse(aiText.trim());
+    } catch {
+        // Fallback if AI doesn't return perfect JSON
+        return {
+            disease: "Analysis incomplete.",
+            description: aiText,
+            precautions: "—", medications: "—", workout: "—", diet: "—"
+        };
+    }
+}
 
             // Login/Logout logic
             function updateLoginState() {
